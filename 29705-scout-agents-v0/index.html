@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Scout Agents V0 - Reviewer's Guide</title>
+<style>
+:root {
+  --bg: #faf9f6;
+  --card: #ffffff;
+  --ink: #1b1d22;
+  --ink-2: #4b505c;
+  --line: #e2ded4;
+  --accent: #2748c4;
+  --accent-bg: #e8edff;
+  --note-bg: #fff6dd;
+  --note-line: #e8c872;
+  --ok: #1d7a3a;
+  --ok-bg: #e3f5e8;
+  --warn: #a85a00;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101319;
+    --card: #181c25;
+    --ink: #eef1f6;
+    --ink-2: #aab2c0;
+    --line: #2a3140;
+    --accent: #8fb0ff;
+    --accent-bg: #1b2547;
+    --note-bg: #2a2412;
+    --note-line: #6b5a22;
+    --ok: #7ad99a;
+    --ok-bg: #12301d;
+    --warn: #f0b266;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; padding: 40px 20px 72px; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+h2 { font-size: 1.3rem; margin: 52px 0 6px; scroll-margin-top: 16px; }
+h2 + .sub-lede { margin-top: 0; }
+p { margin: 0 0 12px; }
+code {
+  font: 0.86em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--accent-bg);
+  padding: 1px 6px;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+.lede { color: var(--ink-2); font-size: 1.05rem; }
+.sub-lede { color: var(--ink-2); margin: 0 0 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; align-items: center; }
+.chip {
+  font-size: 0.82rem;
+  padding: 3px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink-2);
+}
+a.chip { color: var(--accent); border-color: var(--accent); text-decoration: none; font-weight: 600; }
+button.chip { font: inherit; font-size: 0.82rem; cursor: pointer; color: var(--accent); border-color: var(--accent); }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 18px 0 0; font-size: 0.9rem; }
+nav.toc a { color: var(--accent); text-decoration: none; }
+nav.toc a:hover { text-decoration: underline; }
+.card, .box {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+  min-width: 0;
+}
+.card h3, .box h3 { margin: 0 0 6px; font-size: 1rem; }
+.card p, .box p { margin: 0; color: var(--ink-2); font-size: 0.94rem; }
+.grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 14px; }
+.tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 2px 9px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+.card.now { border-color: var(--accent); }
+.eg { color: var(--ink-2); font-size: 0.82rem; margin: 10px 0 0 !important; }
+
+/* agent card mock */
+.agentwrap { display: grid; grid-template-columns: 1.25fr 1fr; gap: 16px; margin-top: 14px; align-items: start; }
+.agent { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.agent .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--accent-bg); }
+.agent .top b { font-size: 1.02rem; }
+.pill { font-size: 0.78rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--ok); color: var(--ok); background: var(--ok-bg); white-space: nowrap; }
+.agent dl { margin: 0; padding: 6px 16px 12px; }
+.agent dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-2); margin-top: 10px; }
+.agent dd { margin: 2px 0 0; font-size: 0.93rem; }
+.agent .note { background: var(--note-bg); border: 1px solid var(--note-line); border-radius: 8px; padding: 6px 10px; }
+.ladder { list-style: none; margin: 0; padding: 0; counter-reset: l; }
+.ladder li { counter-increment: l; display: flex; gap: 10px; align-items: baseline; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 0.92rem; }
+.ladder li::before { content: counter(l); width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--accent-bg); color: var(--accent); font-weight: 700; font-size: 0.8rem; }
+.ladder b { min-width: 68px; }
+.ladder span { color: var(--ink-2); }
+
+/* simulation: one run */
+.sim { display: grid; grid-template-columns: 0.95fr 1.1fr; gap: 18px; margin-top: 16px; align-items: start; }
+ol.stepsim { list-style: none; margin: 0; padding: 0; }
+ol.stepsim li {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  font-size: 0.91rem;
+  color: var(--ink-2);
+  opacity: 0.6;
+}
+ol.stepsim li b { display: block; color: var(--ink); }
+ol.stepsim li:nth-child(1) { animation: hl1 18s infinite; }
+ol.stepsim li:nth-child(2) { animation: hl2 18s infinite; }
+ol.stepsim li:nth-child(3) { animation: hl3 18s infinite; }
+ol.stepsim li:nth-child(4) { animation: hl4 18s infinite; }
+ol.stepsim li:nth-child(5) { animation: hl5 18s infinite; }
+@keyframes hl1 { 0%,2% {opacity:.6;border-color:var(--line);box-shadow:none} 4%,18% {opacity:1;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)} 21%,100% {opacity:.6;border-color:var(--line);box-shadow:none} }
+@keyframes hl2 { 0%,21% {opacity:.6;border-color:var(--line);box-shadow:none} 23%,37% {opacity:1;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)} 40%,100% {opacity:.6;border-color:var(--line);box-shadow:none} }
+@keyframes hl3 { 0%,40% {opacity:.6;border-color:var(--line);box-shadow:none} 42%,56% {opacity:1;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)} 59%,100% {opacity:.6;border-color:var(--line);box-shadow:none} }
+@keyframes hl4 { 0%,59% {opacity:.6;border-color:var(--line);box-shadow:none} 61%,75% {opacity:1;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)} 78%,100% {opacity:.6;border-color:var(--line);box-shadow:none} }
+@keyframes hl5 { 0%,78% {opacity:.6;border-color:var(--line);box-shadow:none} 80%,94% {opacity:1;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)} 97%,100% {opacity:.6;border-color:var(--line);box-shadow:none} }
+
+.lanes { display: grid; gap: 12px; }
+.lane { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.lane header { padding: 8px 14px; background: var(--accent-bg); font-size: 0.82rem; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.lane header b { color: var(--accent); }
+.lane header span { color: var(--ink-2); }
+.lane .body { padding: 12px; display: grid; grid-template-columns: 1fr; gap: 8px; min-height: 150px; align-content: start; }
+.m { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 0.88rem; background: var(--bg); opacity: 0; }
+.m small { display: block; font-size: 0.72rem; color: var(--ink-2); margin-bottom: 1px; }
+.m.note { background: var(--note-bg); border-color: var(--note-line); }
+.stack { display: grid; }
+.stack > * { grid-area: 1 / 1; }
+.typing { align-self: start; justify-self: start; display: flex; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); opacity: 0; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-2); animation: bob 1s infinite; }
+.typing i:nth-child(2) { animation-delay: .15s; }
+.typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes bob { 0%,60%,100% {transform:translateY(0);opacity:.5} 30% {transform:translateY(-4px);opacity:1} }
+.m.a1 { animation: in5 18s infinite; }
+.m.a2 { animation: in42 18s infinite; }
+.m.a3 { animation: in61 18s infinite; }
+.m.a4 { animation: in88 18s infinite; }
+.typing.t1 { animation: tp1 18s infinite; }
+.typing.t2 { animation: tp2 18s infinite; }
+@keyframes in5  { 0%,4%  {opacity:0;transform:translateY(6px)} 7%,96%  {opacity:1;transform:none} 99%,100% {opacity:0} }
+@keyframes in42 { 0%,41% {opacity:0;transform:translateY(6px)} 44%,96% {opacity:1;transform:none} 99%,100% {opacity:0} }
+@keyframes in61 { 0%,60% {opacity:0;transform:translateY(6px)} 63%,96% {opacity:1;transform:none} 99%,100% {opacity:0} }
+@keyframes in88 { 0%,87% {opacity:0;transform:translateY(6px)} 90%,96% {opacity:1;transform:none} 99%,100% {opacity:0} }
+@keyframes tp1 { 0%,22% {opacity:0} 24%,40% {opacity:1} 42%,100% {opacity:0} }
+@keyframes tp2 { 0%,79% {opacity:0} 81%,86% {opacity:1} 88%,100% {opacity:0} }
+
+.strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+.strip div { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 0.88rem; color: var(--ink-2); position: relative; }
+.strip div b { display: block; color: var(--ink); }
+.strip div:not(:last-child)::after { content: "\2192"; position: absolute; right: -9px; top: 50%; transform: translateY(-50%); color: var(--accent); font-weight: 700; background: var(--bg); line-height: 1; z-index: 1; }
+
+/* gates */
+ol.gates { list-style: none; margin: 14px 0; padding: 0; }
+ol.gates li { display: flex; gap: 12px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; margin-bottom: 8px; font-size: 0.95rem; }
+ol.gates .mk { width: 26px; height: 26px; flex: none; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; color: var(--ok); font-weight: 800; font-size: 0.9rem; }
+ol.gates .mk::after { content: "\2713"; opacity: 0; }
+ol.gates li:nth-child(1) .mk::after { animation: ck1 12s infinite; }
+ol.gates li:nth-child(2) .mk::after { animation: ck2 12s infinite; }
+ol.gates li:nth-child(3) .mk::after { animation: ck3 12s infinite; }
+ol.gates li:nth-child(4) .mk::after { animation: ck4 12s infinite; }
+ol.gates li:nth-child(5) .mk::after { animation: ck5 12s infinite; }
+@keyframes ck1 { 0%,6% {opacity:0;transform:scale(.5)} 9%,92% {opacity:1;transform:none} 96%,100% {opacity:0} }
+@keyframes ck2 { 0%,20% {opacity:0;transform:scale(.5)} 23%,92% {opacity:1;transform:none} 96%,100% {opacity:0} }
+@keyframes ck3 { 0%,34% {opacity:0;transform:scale(.5)} 37%,92% {opacity:1;transform:none} 96%,100% {opacity:0} }
+@keyframes ck4 { 0%,48% {opacity:0;transform:scale(.5)} 51%,92% {opacity:1;transform:none} 96%,100% {opacity:0} }
+@keyframes ck5 { 0%,62% {opacity:0;transform:scale(.5)} 65%,92% {opacity:1;transform:none} 96%,100% {opacity:0} }
+.wakebox { border: 2px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--card); animation: wk 12s infinite; }
+.wakebox b { display: block; }
+.wakebox span { color: var(--ink-2); font-size: 0.92rem; }
+@keyframes wk { 0%,76% {border-color:var(--line);background:var(--card)} 80%,92% {border-color:var(--ok);background:var(--ok-bg)} 96%,100% {border-color:var(--line);background:var(--card)} }
+.else { margin-top: 10px; border: 1px dashed var(--line); border-radius: 10px; padding: 10px 14px; color: var(--ink-2); font-size: 0.92rem; }
+
+/* map */
+.mapwrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px; margin-top: 14px; }
+svg.map { display: block; width: 100%; min-width: 700px; height: auto; font-family: inherit; }
+svg.map .bx { fill: var(--card); stroke: var(--line); stroke-width: 1.5; }
+svg.map .bx.hi { stroke: var(--accent); stroke-width: 2; }
+svg.map .tt { fill: var(--ink); font-size: 14px; font-weight: 700; }
+svg.map .tx { fill: var(--ink-2); font-size: 11.5px; }
+svg.map .lb { fill: var(--accent); font-size: 11.5px; font-weight: 600; }
+svg.map .ln { stroke: var(--accent); stroke-width: 2; fill: none; }
+svg.map .ln.flow { stroke-dasharray: 7 6; animation: flow 1.2s linear infinite; }
+svg.map .ln.thin { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 3 4; animation: none; }
+svg.map .ah { fill: var(--accent); }
+@keyframes flow { to { stroke-dashoffset: -26; } }
+
+/* review part */
+.divider { margin: 56px 0 0; padding-top: 18px; border-top: 3px solid var(--accent); }
+.divider h2 { margin-top: 0; }
+table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 0.95rem; }
+th { background: var(--accent-bg); color: var(--accent); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; width: 34%; }
+td .sub { display: block; color: var(--ink-2); font-weight: 400; font-size: 0.88rem; }
+tr.grp td { background: var(--accent-bg); color: var(--accent); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; width: auto; }
+ul, ol.plain { margin: 0 0 12px; padding-left: 22px; }
+li { margin-bottom: 6px; }
+h3.sub { font-size: 1rem; margin: 18px 0 6px; }
+h3.ok { color: var(--ok); }
+h3.todo { color: var(--warn); }
+.note-line { color: var(--ink-2); font-size: 0.9rem; }
+footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 14px; }
+
+.paused *, .paused *::after, .paused *::before { animation-play-state: paused !important; }
+
+@media (max-width: 760px) {
+  main { padding-top: 28px; }
+  h1 { font-size: 1.6rem; }
+  .grid2, .agentwrap, .sim { grid-template-columns: 1fr; }
+  .strip { grid-template-columns: 1fr 1fr; }
+  .strip div:not(:last-child)::after { display: none; }
+  td:first-child { width: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; }
+  .m { opacity: 1 !important; }
+  .typing { display: none; }
+  ol.stepsim li { opacity: 1; }
+  ol.gates .mk::after { opacity: 1; }
+  svg.map .ln.flow { stroke-dasharray: none; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Scout Agents V0: reviewer's guide</h1>
+<p class="lede">What the feature is, what it is for, and how it works end to end, so you know what you are reviewing before you open the diff.</p>
+<div class="chips">
+  <a class="chip" href="https://github.com/Slashbit-Technologies/factors/pull/29705">PR #29705</a>
+  <span class="chip">base: staging</span>
+  <span class="chip">89 files</span>
+  <span class="chip">+24.5k / -219 lines</span>
+  <span class="chip">as of 11 Nov 2026</span>
+  <button class="chip" id="pausebtn" type="button">Pause animations</button>
+</div>
+<nav class="toc" aria-label="On this page">
+  <a href="#why">Why it exists</a>
+  <a href="#uses">Use cases</a>
+  <a href="#agent">The agent</a>
+  <a href="#run">One run</a>
+  <a href="#wake">The wake</a>
+  <a href="#map">Who talks to whom</a>
+  <a href="#review">For the review</a>
+</nav>
+
+<h2 id="why">Why it exists</h2>
+<p class="sub-lede">Scout can chat and can run saved prompts on a schedule (routines). Nothing owns a long-running goal.</p>
+<div class="grid2">
+  <div class="card">
+    <span class="tag">Before</span>
+    <h3>A routine</h3>
+    <p>A saved prompt that runs on a schedule and sends a report. It cannot ask you a question, and there is no single place to follow up on what it found.</p>
+  </div>
+  <div class="card now">
+    <span class="tag">Now</span>
+    <h3>A Scout Agent</h3>
+    <p>It owns a goal. It keeps its own notes, runs tasks (routines) on a schedule, asks the owner when it is unsure, and talks to the owner in one private chat. After a run that found something, it can follow up on its own.</p>
+  </div>
+</div>
+
+<h2 id="uses">What you can use it for</h2>
+<p class="sub-lede">Four things V0 is built for. The example agents are made up.</p>
+<div class="grid2">
+  <div class="card">
+    <span class="tag">Watch</span>
+    <h3>Speak up only when it matters</h3>
+    <p>A daily check. When nothing is wrong, the run leaves a quiet "checked, nothing new" note and nobody is bothered. When it finds something, the agent wakes up and tells the owner.</p>
+    <p class="eg">Example: a "Pipeline watcher" agent.</p>
+  </div>
+  <div class="card">
+    <span class="tag">Report</span>
+    <h3>A weekly report that learns</h3>
+    <p>Every Monday at 09:00 a task writes its report to a run thread. The agent keeps notes such as "prefers short reports" and uses them next time.</p>
+    <p class="eg">Example: a "Weekly summary" task.</p>
+  </div>
+  <div class="card">
+    <span class="tag">Ask</span>
+    <h3>Ask when unsure</h3>
+    <p>A run can end with a question. The agent shows as waiting. The owner answers in that run thread and the question clears.</p>
+    <p class="eg">Example: "Should renewals count as stalled?"</p>
+  </div>
+  <div class="card">
+    <span class="tag">Follow up</span>
+    <h3>Act on a finding by itself</h3>
+    <p>After a finding the agent takes its own turn in the owner chat. It reads the full run, and can update its notes, pause a noisy task, or start another run (2 per hour at most).</p>
+    <p class="eg">Example: start a deeper follow-up run on what it flagged.</p>
+  </div>
+</div>
+
+<h2 id="agent">The agent and its two chats</h2>
+<p class="sub-lede">One agent belongs to one owner. This is what it holds, and how it reads at any moment.</p>
+<div class="agentwrap">
+  <div class="agent" role="img" aria-label="Illustration of an agent profile with goal, instructions, notes, an open question, tasks and connectors">
+    <div class="top"><b>Pipeline watcher</b><span class="pill">state: waiting</span></div>
+    <dl>
+      <dt>Goal</dt><dd>Watch pipeline health</dd>
+      <dt>Instructions</dt><dd>Keep reports short</dd>
+      <dt>Notes (its memory)</dt><dd class="note">Prefers short reports.</dd>
+      <dt>Open question for the owner</dt><dd>Should renewals count as stalled?</dd>
+      <dt>Tasks</dt><dd>Weekly summary &middot; Mondays 09:00</dd>
+      <dt>Connectors</dt><dd>1 switched on (up to 10)</dd>
+    </dl>
+  </div>
+  <div>
+    <p style="margin-bottom:8px"><b>State is worked out every time you read the agent.</b> The first rule that matches wins:</p>
+    <ol class="ladder">
+      <li><b>Working</b><span>a run is in progress</span></li>
+      <li><b>Waiting</b><span>it has an open question for the owner</span></li>
+      <li><b>Blocked</b><span>a task is in an error state</span></li>
+      <li><b>Idle</b><span>none of the above</span></li>
+    </ol>
+    <p class="note-line">Illustration with made-up data.</p>
+  </div>
+</div>
+<div class="grid2">
+  <div class="card">
+    <h3>Owner chat</h3>
+    <p>Private to the owner. This is where the owner talks to the agent. Every finished run leaves a one-line note here, and the agent's own follow-ups land here.</p>
+  </div>
+  <div class="card">
+    <h3>Run thread</h3>
+    <p>One per task run. It holds the task prompt and the report. The whole team can read it. Only the owner can reply, which is also how the owner answers a question.</p>
+  </div>
+</div>
+
+<h2 id="run">One run, start to finish</h2>
+<p class="sub-lede">Watch the two chats fill up. It repeats. Illustration with made-up data.</p>
+<div class="sim">
+  <ol class="stepsim">
+    <li><b>1. Start</b>The schedule fires, or the owner clicks Run now. A run thread is created with the task prompt.</li>
+    <li><b>2. Work</b>The agent does the task. It can update its notes along the way.</li>
+    <li><b>3. Report</b>It writes a report to the run thread: whether to notify, a summary, the details, and optionally a question.</li>
+    <li><b>4. Note</b>One line lands in the owner chat: ran, needs input, checked, stopped, timed out, or failed.</li>
+    <li><b>5. Wake</b>If the run succeeded and asked to notify, the agent takes its own turn in the owner chat: it reads the run and replies.</li>
+  </ol>
+  <div class="lanes">
+    <div class="lane" role="img" aria-label="Run thread filling with the task prompt and then the report">
+      <header><b>Run thread</b><span>Weekly pipeline check &middot; 2026-11-09 &middot; team can read</span></header>
+      <div class="body">
+        <div class="m a1"><small>Task prompt</small>List deals with no activity for more than 10 days.</div>
+        <div class="stack">
+          <div class="typing t1"><i></i><i></i><i></i></div>
+          <div class="m a2"><small>Agent report</small>3 deals have been idle for more than 10 days. Notify: yes.</div>
+        </div>
+      </div>
+    </div>
+    <div class="lane" role="img" aria-label="Owner chat filling with the one-line note and then the agent's follow-up reply">
+      <header><b>Owner chat</b><span>Pipeline watcher &middot; private to the owner</span></header>
+      <div class="body">
+        <div class="m note a3"><small>One-line note</small>Ran Weekly pipeline check &middot; 3 deals idle for more than 10 days</div>
+        <div class="stack">
+          <div class="typing t2"><i></i><i></i><i></i></div>
+          <div class="m a4"><small>Agent, after waking up</small>Heads up: two of those passed 14 days. I added them to my notes.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<h3 class="sub">If the report has a question</h3>
+<div class="strip">
+  <div><b>Run asks</b>The run ends with a question for the owner.</div>
+  <div><b>Agent waits</b>It shows as waiting, with the question.</div>
+  <div><b>Owner answers</b>A normal message in that run thread.</div>
+  <div><b>Question clears</b>Once the reply is stored. If the turn fails, it stays open.</div>
+</div>
+<p class="note-line" style="margin-top:10px">The owner can also stop a run. It notices the stop request at its next model call and ends as cancelled.</p>
+
+<h2 id="wake">Does the agent wake up?</h2>
+<p class="sub-lede">Not every run wakes the agent. All of these must be true. A question asked by the run itself does not block its own wake.</p>
+<ol class="gates">
+  <li><span class="mk"></span>The run succeeded and asked to notify</li>
+  <li><span class="mk"></span>The agent has used fewer than 6 wakes this hour</li>
+  <li><span class="mk"></span>The owner is not chatting with the agent right now</li>
+  <li><span class="mk"></span>The owner chat is not waiting on the owner's answer to an earlier question or approval</li>
+  <li><span class="mk"></span>LLM quota is left and the services answer</li>
+</ol>
+<div class="wakebox"><b>The agent wakes up</b><span>The turn runs in the Python service, in the background. The Go side does not wait for it. It is capped like any chat turn (29 minutes by default), and the owner chat is locked while it runs.</span></div>
+<div class="else"><b>If any gate says no:</b> only the one-line note is posted. Nothing is retried and no error is shown.</div>
+
+<h2 id="map">Who talks to whom</h2>
+<p class="sub-lede">Four workloads change in this PR. The moving dashes are calls.</p>
+<div class="mapwrap">
+<svg class="map" viewBox="0 0 760 420" role="img" aria-label="Diagram: the browser calls the API server. The API server and the scheduled job call the Python agent service. Python calls the data server for every read and write, and calls the API server with the owner token on nine new routes. The data server uses the database and cache.">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,1 L9,5 L0,9 z"/></marker>
+  </defs>
+
+  <rect class="bx" x="14" y="24" width="140" height="60" rx="10"/>
+  <text class="tt" x="30" y="50">Browser</text>
+  <text class="tx" x="30" y="68">owner and team</text>
+
+  <rect class="bx hi" x="250" y="24" width="210" height="80" rx="10"/>
+  <text class="tt" x="266" y="50">API server</text>
+  <text class="tx" x="266" y="68">agent, task and run routes</text>
+  <text class="tx" x="266" y="84">Run now &middot; Stop &middot; chat proxy</text>
+
+  <rect class="bx hi" x="540" y="24" width="206" height="80" rx="10"/>
+  <text class="tt" x="556" y="50">Scheduled job</text>
+  <text class="tx" x="556" y="68">finds due tasks, runs them,</text>
+  <text class="tx" x="556" y="84">writes the note, asks for a wake</text>
+
+  <rect class="bx hi" x="250" y="186" width="270" height="84" rx="10"/>
+  <text class="tt" x="266" y="212">Python agent service</text>
+  <text class="tx" x="266" y="231">chat turns &middot; task runs &middot; wake turns</text>
+  <text class="tx" x="266" y="247">no database access</text>
+
+  <rect class="bx hi" x="250" y="336" width="210" height="64" rx="10"/>
+  <text class="tt" x="266" y="362">Data server</text>
+  <text class="tx" x="266" y="380">all agent reads and writes</text>
+
+  <rect class="bx" x="540" y="336" width="206" height="64" rx="10"/>
+  <text class="tt" x="556" y="362">Database and cache</text>
+  <text class="tx" x="556" y="380">used by the Go services too</text>
+
+  <!-- browser -> api -->
+  <path class="ln flow" d="M154,54 H246" marker-end="url(#ah)"/>
+  <!-- api -> python -->
+  <path class="ln flow" d="M355,104 V182" marker-end="url(#ah)"/>
+  <text class="lb" x="365" y="148">chat turns, Run now runs</text>
+  <!-- job -> python -->
+  <path class="ln flow" d="M643,104 V228 H524" marker-end="url(#ah)"/>
+  <text class="lb" x="653" y="150">task runs</text>
+  <text class="lb" x="653" y="166">and wake request</text>
+  <!-- python -> api with owner token -->
+  <path class="ln flow" d="M250,228 H206 V74 H246" marker-end="url(#ah)"/>
+  <text class="lb" x="14" y="130">owner-token calls</text>
+  <text class="lb" x="14" y="146">back to the API</text>
+  <text class="lb" x="14" y="162">(9 new routes)</text>
+  <!-- python -> data -->
+  <path class="ln flow" d="M385,270 V332" marker-end="url(#ah)"/>
+  <text class="lb" x="395" y="306">every read and write</text>
+  <!-- data -> db -->
+  <path class="ln" d="M460,368 H536" marker-end="url(#ah)"/>
+  <!-- job -> db (direct) -->
+  <path class="ln thin" d="M726,104 V332" marker-end="url(#ah)"/>
+</svg>
+</div>
+<p class="note-line" style="margin-top:8px">The API server and the scheduled job also use the database and cache directly (the dotted line shows the job). Python never does: it goes through the data server.</p>
+
+<div class="divider" id="review">
+  <h2>For the review</h2>
+  <p class="sub-lede">The details you need while reading the diff.</p>
+</div>
+
+<h3 class="sub">Connectors</h3>
+<p>Each agent has its own connectors (MCP). The owner chooses them.</p>
+<ul>
+  <li>A new agent has none switched on. The owner switches each one on.</li>
+  <li>At most 10 per agent. A connector that can write also needs a separate "allow write" OK.</li>
+  <li>Task runs now get the connectors that are switched on. Before, they got none.</li>
+  <li>This PR adds no way to add a custom connector URL.</li>
+</ul>
+
+<h3 class="sub">Limits and guardrails</h3>
+<table>
+  <tr><th>Guardrail</th><th>Value</th></tr>
+  <tr><td>Agents per project</td><td>50</td></tr>
+  <tr><td>Text sizes</td><td>notes 8,000 &middot; goal 1,200 &middot; instructions 2,500 &middot; description 160 characters</td></tr>
+  <tr><td>Open questions per agent</td><td>50 <span class="sub">The oldest is dropped when a new one is added.</span></td></tr>
+  <tr><td>Connectors switched on</td><td>10 per agent</td></tr>
+  <tr><td>Wakes</td><td>6 per agent per hour <span class="sub">Extra wakes are skipped.</span></td></tr>
+  <tr><td>Runs started by a wake</td><td>2 per agent per hour <span class="sub">A third gets HTTP 429 (<code>wake_run_cap</code>). This stops an agent from looping on itself.</span></td></tr>
+  <tr><td>One turn at a time</td><td>Each conversation has a lock: 90 s, refreshed every 30 s <span class="sub">The owner chat and a wake never write at the same time. A crashed pod frees its chat within 90 s.</span></td></tr>
+  <tr><td>Longest turn</td><td>29 minutes by default <span class="sub">A wake turn has the same cap as an owner turn. While it runs, the owner chat is locked.</span></td></tr>
+  <tr><td>Stop</td><td>The running agent checks for a stop request about every 2 s</td></tr>
+  <tr><td>Stuck runs</td><td>A run claim counts as dead after 45 minutes</td></tr>
+  <tr><td>Notes edits</td><td>Version-checked <span class="sub">If two writers collide, the second gets a 409 and has to re-read.</span></td></tr>
+</table>
+
+<h3 class="sub">Who can do what</h3>
+<table>
+  <tr><th>Who</th><th>What they can do</th></tr>
+  <tr><td>Owner</td><td>Everything: the private chat, replies in run threads, edits to the agent, its tasks and its connectors.</td></tr>
+  <tr><td>Other project members</td><td>Read the goal, notes, tasks, runs and run outputs. They cannot see the owner chat or its files, and cannot change anything.</td></tr>
+  <tr><td>Owner leaves the project</td><td>Their tasks are paused, and a project admin can delete the agent.</td></tr>
+</table>
+
+<h3 class="sub">Flags and rollout</h3>
+<ul>
+  <li><b>Two new flags, both off by default.</b> One on the API server: when it is off, every agent route answers 404. One on the Python service: it only gates two read tools in plain Scout chat.</li>
+  <li><b>A flag is a rollout gate, not a kill switch.</b> Turning the API flag off stops the agent routes and agent chat. Agents that already exist keep running their tasks. The wake has no flag, so only a deploy stops it.</li>
+  <li><b>With all flags off, plain Scout works as before.</b> Tests cover this. A few plain-path changes are on purpose: the run code is split in two (plain routines keep the old entry), inserts name the new empty columns, the sidebar and unread lists hide agent chats, the payload filter skips two agent routes, and removing a member runs one extra statement.</li>
+  <li><b>Auth.</b> When the agent calls back into the API, it uses the owner's short-lived token. This PR makes that token work on <b>nine more routes</b>: three agent routes (run a task, list runs, edit the agent) and six task routes (create, read, edit, publish, pause, resume). They still check the flag, and the agent routes check that the caller is the owner.</li>
+</ul>
+
+<h3 class="sub">Deploy order</h3>
+<ol class="plain">
+  <li><b>Both database migrations first.</b> Apply the connectors one before the data server rolls out, or every agent turn fails. Staging has only the earlier first migration, so the second must be applied there by hand.</li>
+  <li><b>Then the services:</b> data server, Python service, API server, scheduled job. A wake only starts after the API server or the job is new, so Python is always ready first.</li>
+  <li><b>Flags last,</b> and only after the image that defines each flag is live. Otherwise the workload crashes on an unknown flag.</li>
+</ol>
+
+<h3 class="sub">What was tested</h3>
+<p class="note-line">Quoted from the PR description. I have not re-run these.</p>
+<h3 class="sub ok">Done</h3>
+<ul>
+  <li>Go: 354 tests passed across 41 test files. Python: 886 tests passed (631 + 255).</li>
+  <li>One live local run with a real model: the wake replied, it was skipped when the chat was busy or waiting on the owner, and both hourly caps held.</li>
+  <li>When the Python service was killed mid-turn, the chat lock freed by itself in under 90 s. The turn itself was lost.</li>
+</ul>
+<h3 class="sub todo">Not run yet</h3>
+<ul>
+  <li>Staging, a real frontend, and a real connector.</li>
+  <li>A wake turn longer than 30 s, so the lock refresh was not seen live.</li>
+  <li>A wake that asks the owner a question, and a wake started by the scheduled job (tests only).</li>
+  <li>An older Python answering 404, Slack and email delivery, and the full test suites.</li>
+</ul>
+<p>The one manual check that closes most of this: on a staging agent, Run now a task that finds something, then read the owner chat. Expect the run note, then the agent's reply.</p>
+
+<h3 class="sub">Where to start in the diff</h3>
+<table>
+  <tr><th>File</th><th>Why</th></tr>
+  <tr class="grp"><td colspan="2">Review these first (other Scout work edits them too)</td></tr>
+  <tr><td><code>task/scout_schedules/runner.go</code></td><td>The run entry is split in two. Plain routines still use the old call.</td></tr>
+  <tr><td><code>middleware/middleware.go</code></td><td>The nine token routes and the payload filter skip.</td></tr>
+  <tr><td><code>python_backend/app/handlers/chat_handlers.py</code></td><td>Two existing blocks moved out of the owner send handler so the wake can reuse them, plus the agent branch.</td></tr>
+  <tr><td><code>model/store/</code></td><td>The conversation, message and schedule store files: new columns and the sidebar filter.</td></tr>
+  <tr class="grp"><td colspan="2">New code</td></tr>
+  <tr><td><code>model/model/scout_agent.go</code></td><td>Agent rules, limits and state.</td></tr>
+  <tr><td><code>handler/v1/scout_agents.go</code></td><td>Agent API, owner vs member.</td></tr>
+  <tr><td><code>handler/v1/scout_agents_run.go</code></td><td>Run now, Stop, wake run cap.</td></tr>
+  <tr><td><code>handler/v1/scout_agents_dataserver.go</code></td><td>Data server side.</td></tr>
+  <tr><td><code>cache/scoutagent/scoutagent.go</code></td><td>Lock, progress, stop and the hourly caps.</td></tr>
+  <tr><td><code>task/scout_schedules/agent_wake.go</code></td><td>The wake request and its hourly cap.</td></tr>
+  <tr><td><code>python_backend/copilot/scout_agents/</code></td><td>The Python agent package: prompts, tools, lock, stop.</td></tr>
+  <tr><td><code>python_backend/app/handlers/scout_agent_wake_handlers.py</code></td><td>The wake route.</td></tr>
+</table>
+<p style="margin-top:10px" class="note-line">Go paths are under <code>backend/src/factors/</code>. PRs #29428 and #29687 edit some of the same files. Whichever merges second has to rebase.</p>
+
+<h3 class="sub">Good places to look hard</h3>
+<ul>
+  <li><b>Permissions.</b> Owner vs member on every route, including the nine token routes.</li>
+  <li><b>The wake.</b> It uses the same tools as the owner's chat, with nothing locked. Read the "Known limits of the wake" section in the PR description before you approve.</li>
+  <li><b>Loops and two writers.</b> The wake cap, the wake-started run cap, the turn lock and the notes version check.</li>
+</ul>
+
+<footer>Numbers are from the PR description and the code at the PR head on 11 Nov 2026. Example agents and chat text are made up.</footer>
+
+</main>
+<script>
+(function () {
+  var b = document.getElementById('pausebtn');
+  if (!b) return;
+  b.addEventListener('click', function () {
+    var p = document.body.classList.toggle('paused');
+    b.textContent = p ? 'Play animations' : 'Pause animations';
+  });
+})();
+</script>
+</body>
+</html>
