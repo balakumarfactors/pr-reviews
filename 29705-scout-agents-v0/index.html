@@ -255,7 +255,7 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
   <a class="chip" href="https://github.com/Slashbit-Technologies/factors/pull/29705">PR #29705</a>
   <span class="chip">base: staging</span>
   <span class="chip">91 files</span>
-  <span class="chip">+25.9k / -238 lines</span>
+  <span class="chip">+26.2k / -238 lines</span>
   <span class="chip">as of 12 Nov 2026</span>
   <button class="chip" id="pausebtn" type="button">Pause animations</button>
 </div>
@@ -280,7 +280,7 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
   <div class="card now">
     <span class="tag">Now</span>
     <h3>A Scout Agent</h3>
-    <p>It owns a goal. It keeps its own notes, runs tasks (routines) on a schedule, asks the owner when it is unsure, and talks to the owner in one private chat. After a run that found something, it can follow up on its own.</p>
+    <p>It owns a goal. It keeps its own notes, runs tasks (routines) on a schedule, asks the owner when it is unsure, and talks to the owner in one private chat. After a run that found something, failed or timed out, it can follow up on its own.</p>
   </div>
 </div>
 
@@ -357,7 +357,7 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
     <li><b>2. Work</b>The agent does the task. It can update its notes along the way.</li>
     <li><b>3. Report</b>It writes a report to the run thread: whether to notify, a summary, the details, and optionally a question.</li>
     <li><b>4. Note</b>One line lands in the owner chat: ran, needs input, checked, stopped, timed out, or failed.</li>
-    <li><b>5. Wake</b>If the run succeeded and asked to notify, the agent takes its own turn in the owner chat: it reads the run and replies.</li>
+    <li><b>5. Wake</b>If the run succeeded and asked to notify, or it failed or timed out, the agent takes its own turn in the owner chat: it reads the run (its error, if it failed) and replies.</li>
   </ol>
   <div class="lanes">
     <div class="lane" role="img" aria-label="Run thread filling with the task prompt and then the report">
@@ -392,15 +392,15 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
 <p class="note-line" style="margin-top:10px">The owner can also stop a run. It notices the stop request at its next model call and ends as cancelled.</p>
 
 <h2 id="wake">Does the agent wake up?</h2>
-<p class="sub-lede">Not every run wakes the agent. All of these must be true. A question asked by the run itself does not block its own wake.</p>
+<p class="sub-lede">Not every run wakes the agent. A check that found nothing and a run the owner stopped never do. For the rest, all of these must be true. A question asked by the run itself does not block its own wake.</p>
 <ol class="gates">
-  <li><span class="mk"></span>The run succeeded and asked to notify</li>
+  <li><span class="mk"></span>The run succeeded and asked to notify, or it failed or timed out</li>
   <li><span class="mk"></span>The agent has used fewer than 6 wakes this hour</li>
   <li><span class="mk"></span>The owner is not chatting with the agent right now</li>
   <li><span class="mk"></span>The owner chat is not waiting on the owner's answer to an earlier question or approval</li>
   <li><span class="mk"></span>LLM quota is left and the services answer</li>
 </ol>
-<div class="wakebox"><b>The agent wakes up</b><span>The turn runs in the Python service, in the background. The Go side does not wait for it. It is capped like any chat turn (29 minutes by default), and the owner chat is locked while it runs.</span></div>
+<div class="wakebox"><b>The agent wakes up</b><span>The turn runs in the Python service, in the background. The Go side does not wait for it. It is capped like any chat turn (29 minutes by default), and the owner chat is locked while it runs. After a failed run it can run the task once more, fix it, pause it, or tell the owner. The run limits below still apply.</span></div>
 <div class="else"><b>If any gate says no:</b> only the one-line note is posted. Nothing is retried and no error is shown. The agent still reads that note in its chat history on its next turn.</div>
 
 <h2 id="map">Who talks to whom</h2>
@@ -495,7 +495,7 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
   <tr><td>Open questions per agent</td><td>50 <span class="sub">The oldest is dropped when a new one is added.</span></td></tr>
   <tr><td>Connectors switched on</td><td>10 per agent</td></tr>
   <tr><td>Wakes</td><td>6 per agent per hour <span class="sub">Extra wakes are skipped.</span></td></tr>
-  <tr><td>Runs started by a wake</td><td>2 per agent per hour <span class="sub">A third gets HTTP 429 (<code>wake_run_cap</code>). This stops an agent from looping on itself.</span></td></tr>
+  <tr><td>Runs started by a wake</td><td>2 per agent per hour <span class="sub">A third gets HTTP 429 (<code>wake_run_cap</code>). This stops an agent from looping on itself, for example retrying a task that keeps failing.</span></td></tr>
   <tr><td>One turn at a time</td><td>Each conversation has a lock: 90 s, refreshed every 30 s <span class="sub">The owner chat and a wake never write at the same time. A crashed pod frees its chat within 90 s.</span></td></tr>
   <tr><td>Longest turn</td><td>29 minutes by default <span class="sub">A wake turn has the same cap as an owner turn. While it runs, the owner chat is locked.</span></td></tr>
   <tr><td>Stop</td><td>The running agent checks for a stop request about every 2 s</td></tr>
@@ -527,18 +527,19 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
 </ol>
 
 <h3 class="sub">What was tested</h3>
-<p class="note-line">From the PR description. The Go and Python numbers were run on the final commit; the live runs were not repeated on it.</p>
+<p class="note-line">From the PR description. The Go and Python numbers were run on the final commit. A live run was repeated on it for a run that found something, a failed run, a checked run and a stopped run; the earlier live runs were not.</p>
 <h3 class="sub ok">Done</h3>
 <ul>
-  <li>Go: 371 tests passed (119 in the scout-agent files, 252 in the base's scout-schedule, conversation and copilot files), none failed or skipped. Python: 967 tests passed (712 + 255).</li>
+  <li>Go: 362 tests passed (121 in the scout-agent files, 241 in the base's scout-schedule, conversation and copilot files), none failed or skipped. Python: 974 tests passed (719 + 255).</li>
   <li>One live local run with a real model: the wake replied, it was skipped when the chat was busy or waiting on the owner, and both hourly caps held.</li>
+  <li>A live local run on the final commit: a run that found something and a run that failed each got one wake reply, and for the failed run the agent read the error text. A checked run and a stopped run got only the note.</li>
   <li>A later live check with two models (claude-opus-4-6 and gpt-5.5): the run notes sat in place in what the model read, a replaced "Checked" note was left out, and the roles alternated.</li>
   <li>When the Python service was killed mid-turn, the chat lock freed by itself in under 90 s. The turn itself was lost.</li>
 </ul>
 <h3 class="sub todo">Not run yet</h3>
 <ul>
   <li>Staging, a real frontend, and a real connector.</li>
-  <li>A live run on the final commit: the token limit to agent tasks, the owner check, the new prompts, and the wake without the clarification tool (tests only).</li>
+  <li>Not run live on the final commit: a timed-out run waking the agent, no wake without the owner's token, the two hourly caps, and the token limit to agent tasks (tests only).</li>
   <li>A wake turn longer than 30 s, so the lock refresh was not seen live.</li>
   <li>A wake started by the scheduled job (tests only).</li>
   <li>An older Python answering 404, Slack and email delivery, and the full test suites.</li>
@@ -574,7 +575,7 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
   <li><b>Loops and two writers.</b> The wake cap, the wake-started run cap, the turn lock and the notes version check.</li>
 </ul>
 
-<footer>Numbers are from the PR description and the code at the PR head (f9bb8c2) on 12 Nov 2026. Example agents and chat text are made up.</footer>
+<footer>Numbers are from the PR description and the code at the PR head (72231f6) on 12 Nov 2026. Example agents and chat text are made up.</footer>
 
 </main>
 <script>
