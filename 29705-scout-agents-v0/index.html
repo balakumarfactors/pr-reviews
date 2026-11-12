@@ -254,9 +254,9 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
 <div class="chips">
   <a class="chip" href="https://github.com/Slashbit-Technologies/factors/pull/29705">PR #29705</a>
   <span class="chip">base: staging</span>
-  <span class="chip">89 files</span>
-  <span class="chip">+24.5k / -219 lines</span>
-  <span class="chip">as of 11 Nov 2026</span>
+  <span class="chip">91 files</span>
+  <span class="chip">+25.9k / -238 lines</span>
+  <span class="chip">as of 12 Nov 2026</span>
   <button class="chip" id="pausebtn" type="button">Pause animations</button>
 </div>
 <nav class="toc" aria-label="On this page">
@@ -341,7 +341,7 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
 <div class="grid2">
   <div class="card">
     <h3>Owner chat</h3>
-    <p>Private to the owner. This is where the owner talks to the agent. Every finished run leaves a one-line note here, and the agent's own follow-ups land here.</p>
+    <p>Private to the owner. This is where the owner talks to the agent. Every finished run leaves a one-line note here, and the agent's own follow-ups land here. The agent reads those notes in its history, as ordinary messages.</p>
   </div>
   <div class="card">
     <h3>Run thread</h3>
@@ -401,7 +401,7 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
   <li><span class="mk"></span>LLM quota is left and the services answer</li>
 </ol>
 <div class="wakebox"><b>The agent wakes up</b><span>The turn runs in the Python service, in the background. The Go side does not wait for it. It is capped like any chat turn (29 minutes by default), and the owner chat is locked while it runs.</span></div>
-<div class="else"><b>If any gate says no:</b> only the one-line note is posted. Nothing is retried and no error is shown.</div>
+<div class="else"><b>If any gate says no:</b> only the one-line note is posted. Nothing is retried and no error is shown. The agent still reads that note in its chat history on its next turn.</div>
 
 <h2 id="map">Who talks to whom</h2>
 <p class="sub-lede">Four workloads change in this PR. The moving dashes are calls.</p>
@@ -477,6 +477,16 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
   <li>This PR adds no way to add a custom connector URL.</li>
 </ul>
 
+<h3 class="sub">What the agent reads of its chat</h3>
+<p>The run notes are regular assistant messages in the owner chat. The model reads them in order, as the owner does.</p>
+<ul>
+  <li>Before this change, a note the agent had not replied to was dropped from its history, and one it had replied to came back as a user message. Now no note is dropped or rewritten, with one exception below.</li>
+  <li>A "Checked ... nothing new" note is left out once the same task has a newer note. Without this, a monitor that runs every few minutes would grow the chat without limit. The owner still sees every note.</li>
+  <li>Roles are made to alternate. Neighbouring assistant messages (a note and the agent's reply to it) become one message. A chat that would open with an assistant message gets one fixed user line first, because Anthropic and Bedrock reject a chat that opens with the assistant. This happens when a task runs before the owner ever writes.</li>
+  <li>The agent's prompt still lists every task with its status, and the last 10 runs. When the task list is too long for its budget, each last-run summary is dropped before any task is, because the agent has no tool that lists its tasks.</li>
+  <li>A note is only a summary. The full report is not in the chat: the agent reads it with <code>read_agent_run</code>. Run threads and plain chats are unchanged.</li>
+</ul>
+
 <h3 class="sub">Limits and guardrails</h3>
 <table>
   <tr><th>Guardrail</th><th>Value</th></tr>
@@ -506,7 +516,7 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
   <li><b>Two new flags, both off by default.</b> One on the API server: when it is off, every agent route answers 404. One on the Python service: it only gates two read tools in plain Scout chat.</li>
   <li><b>A flag is a rollout gate, not a kill switch.</b> Turning the API flag off stops the agent routes and agent chat. Agents that already exist keep running their tasks. The wake has no flag, so only a deploy stops it.</li>
   <li><b>With all flags off, plain Scout works as before.</b> Tests cover this. A few plain-path changes are on purpose: the run code is split in two (plain routines keep the old entry), inserts name the new empty columns, the sidebar and unread lists hide agent chats, the payload filter skips two agent routes, and removing a member runs one extra statement.</li>
-  <li><b>Auth.</b> When the agent calls back into the API, it uses the owner's short-lived token. This PR makes that token work on <b>nine more routes</b>: three agent routes (run a task, list runs, edit the agent) and six task routes (create, read, edit, publish, pause, resume). They still check the flag, and the agent routes check that the caller is the owner.</li>
+  <li><b>Auth.</b> When the agent calls back into the API, it uses the owner's short-lived token. This PR makes that token work on <b>nine more routes</b>: three agent routes (run a task, list runs, edit the agent) and six task routes (create, read, edit, publish, pause, resume). The agent routes still check the flag and that the caller is the owner. On the six task routes the token works for agent tasks only: a standalone routine still refuses it.</li>
 </ul>
 
 <h3 class="sub">Deploy order</h3>
@@ -517,18 +527,20 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
 </ol>
 
 <h3 class="sub">What was tested</h3>
-<p class="note-line">Quoted from the PR description. I have not re-run these.</p>
+<p class="note-line">From the PR description. The Go and Python numbers were run on the final commit; the live runs were not repeated on it.</p>
 <h3 class="sub ok">Done</h3>
 <ul>
-  <li>Go: 354 tests passed across 41 test files. Python: 886 tests passed (631 + 255).</li>
+  <li>Go: 371 tests passed (119 in the scout-agent files, 252 in the base's scout-schedule, conversation and copilot files), none failed or skipped. Python: 967 tests passed (712 + 255).</li>
   <li>One live local run with a real model: the wake replied, it was skipped when the chat was busy or waiting on the owner, and both hourly caps held.</li>
+  <li>A later live check with two models (claude-opus-4-6 and gpt-5.5): the run notes sat in place in what the model read, a replaced "Checked" note was left out, and the roles alternated.</li>
   <li>When the Python service was killed mid-turn, the chat lock freed by itself in under 90 s. The turn itself was lost.</li>
 </ul>
 <h3 class="sub todo">Not run yet</h3>
 <ul>
   <li>Staging, a real frontend, and a real connector.</li>
+  <li>A live run on the final commit: the token limit to agent tasks, the owner check, the new prompts, and the wake without the clarification tool (tests only).</li>
   <li>A wake turn longer than 30 s, so the lock refresh was not seen live.</li>
-  <li>A wake that asks the owner a question, and a wake started by the scheduled job (tests only).</li>
+  <li>A wake started by the scheduled job (tests only).</li>
   <li>An older Python answering 404, Slack and email delivery, and the full test suites.</li>
 </ul>
 <p>The one manual check that closes most of this: on a staging agent, Run now a task that finds something, then read the owner chat. Expect the run note, then the agent's reply.</p>
@@ -538,8 +550,8 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
   <tr><th>File</th><th>Why</th></tr>
   <tr class="grp"><td colspan="2">Review these first (other Scout work edits them too)</td></tr>
   <tr><td><code>task/scout_schedules/runner.go</code></td><td>The run entry is split in two. Plain routines still use the old call.</td></tr>
-  <tr><td><code>middleware/middleware.go</code></td><td>The nine token routes and the payload filter skip.</td></tr>
-  <tr><td><code>python_backend/app/handlers/chat_handlers.py</code></td><td>Two existing blocks moved out of the owner send handler so the wake can reuse them, plus the agent branch.</td></tr>
+  <tr><td><code>middleware/middleware.go</code></td><td>The nine token routes (six of them limited to agent tasks) and the payload filter skip.</td></tr>
+  <tr><td><code>python_backend/app/handlers/chat_handlers.py</code></td><td>Two existing blocks moved out of the owner send handler so the wake can reuse them, plus the agent branch and the function that builds the main chat's history.</td></tr>
   <tr><td><code>model/store/</code></td><td>The conversation, message and schedule store files: new columns and the sidebar filter.</td></tr>
   <tr class="grp"><td colspan="2">New code</td></tr>
   <tr><td><code>model/model/scout_agent.go</code></td><td>Agent rules, limits and state.</td></tr>
@@ -549,6 +561,7 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
   <tr><td><code>cache/scoutagent/scoutagent.go</code></td><td>Lock, progress, stop and the hourly caps.</td></tr>
   <tr><td><code>task/scout_schedules/agent_wake.go</code></td><td>The wake request and its hourly cap.</td></tr>
   <tr><td><code>python_backend/copilot/scout_agents/</code></td><td>The Python agent package: prompts, tools, lock, stop.</td></tr>
+  <tr><td><code>python_backend/copilot/scout_agents/main_chat_history.py</code></td><td>What the model reads of the main chat: the notes stay, roles alternate.</td></tr>
   <tr><td><code>python_backend/app/handlers/scout_agent_wake_handlers.py</code></td><td>The wake route.</td></tr>
 </table>
 <p style="margin-top:10px" class="note-line">Go paths are under <code>backend/src/factors/</code>. PRs #29428 and #29687 edit some of the same files. Whichever merges second has to rebase.</p>
@@ -556,11 +569,12 @@ footer { margin-top: 48px; color: var(--ink-2); font-size: 0.85rem; border-top: 
 <h3 class="sub">Good places to look hard</h3>
 <ul>
   <li><b>Permissions.</b> Owner vs member on every route, including the nine token routes.</li>
-  <li><b>The wake.</b> It uses the same tools as the owner's chat, with nothing locked. Read the "Known limits of the wake" section in the PR description before you approve.</li>
+  <li><b>The wake.</b> It uses the same tools as the owner's chat, except the clarification card, with nothing locked. Read the "Known limits of the wake" section in the PR description before you approve.</li>
+  <li><b>The chat history.</b> <code>main_chat_history.py</code>, used by the owner turn and the wake turn: the merge of neighbouring assistant messages, the first user line, and which "Checked" notes are left out.</li>
   <li><b>Loops and two writers.</b> The wake cap, the wake-started run cap, the turn lock and the notes version check.</li>
 </ul>
 
-<footer>Numbers are from the PR description and the code at the PR head on 11 Nov 2026. Example agents and chat text are made up.</footer>
+<footer>Numbers are from the PR description and the code at the PR head (f9bb8c2) on 12 Nov 2026. Example agents and chat text are made up.</footer>
 
 </main>
 <script>
